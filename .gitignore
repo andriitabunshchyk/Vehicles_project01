@@ -1,0 +1,14 @@
+*
+.idea/
+#Caches
+__pycache__/
+*.pyc
+*.pyo
+
+#Logs
+*.log
+
+#Data
+Data/
+
+
