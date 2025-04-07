@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import matplotlib.pyplot as plt
+import optuna
 from typing import Dict, List
 
 
@@ -131,7 +132,8 @@ from tqdm.auto import tqdm
 
 #1. Create a train functions
 
-def train(model: torch.nn.Module,
+def train(trial,
+          model: torch.nn.Module,
           train_dataloader: torch.utils.data.DataLoader,
           test_dataloader: torch.utils.data.DataLoader,
           loss_fn: torch.nn.Module,
@@ -160,6 +162,10 @@ def train(model: torch.nn.Module,
         results['test_loss'].append(test_loss)
         results['test_acc'].append(test_acc)
         print(f"Epoch {epoch+1}/{epochs} | Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.4f} | Test Loss: {test_loss:.4f} | Test Acc: {test_acc:.4f}")
+        print(results)
+        trial.report(results['test_acc'][epoch], epoch)
+        if trial.should_prune():
+            raise optuna.exceptions.TrialPruned()
     return results
 
 def plot_loss_curves(results: Dict[str, List[float]]):
