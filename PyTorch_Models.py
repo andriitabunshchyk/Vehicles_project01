@@ -64,7 +64,6 @@ def train_step(model: torch.nn.Module,
                device = device):
     #Put the model in train mode
     model.train()
-
     #Setup train loss and train accuracy values
     train_loss, train_acc = 0,0
 
@@ -107,6 +106,7 @@ def test_step(model: torch.nn.Module,
     test_loss, test_acc = 0,0
 
     #Turn on inference mode
+    y_preds=[]  # for Confusion Matrix
     with torch.inference_mode():
         #Loop through dataloader batches
         for batch, (X,y) in enumerate(dataloader):
@@ -120,12 +120,14 @@ def test_step(model: torch.nn.Module,
 
             #Calculate accuracy
             test_pred_labels = test_pred_logits.argmax(dim=1)
+            y_preds.append(test_pred_labels.cpu())  # For confusion Matrix
             test_acc+=((test_pred_labels == y).sum().item()/len(test_pred_logits))
 
     #Adjust metrics to get average loss and accuracy
     test_loss = test_loss/len(dataloader)
     test_acc = test_acc/len(dataloader)
-    return test_loss, test_acc
+    y_pred_tensor = torch.cat(y_preds) # For Confusion Matrix y_pred_tensor
+    return test_loss, test_acc , y_pred_tensor    #y_pred_tensor for Confusion Matrix
 
 #Create a train() function to combine train_step() and test_step()
 from tqdm.auto import tqdm
@@ -152,7 +154,7 @@ def train(trial,
                                            loss_fn = loss_fn,
                                            optimizer = optimizer,
                                            device=device)
-        test_loss, test_acc = test_step(model=model,
+        test_loss, test_acc, y_pred_tensor = test_step(model=model,    #y_pred_tensor for Confusion Matrix
                                         dataloader=test_dataloader,
                                         loss_fn = loss_fn,
                                         device = device)
@@ -166,7 +168,7 @@ def train(trial,
         trial.report(results['test_acc'][epoch], epoch)
         if trial.should_prune():
             raise optuna.exceptions.TrialPruned()
-    return results
+    return results, y_pred_tensor    #y_pred_tensor for Confusion Matrix
 
 def plot_loss_curves(results: Dict[str, List[float]]):
     """Plot training curves of a results dictionary."""
